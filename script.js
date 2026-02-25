@@ -508,47 +508,7 @@ document.getElementById('backButton').addEventListener('click', () => {
 if (!is_declarative_tool) {
     document.getElementById('flightForm').addEventListener('submit', function(e) {
         e.preventDefault();
-
-        searchData = {
-            origin: document.getElementById('origin').value,
-            destination: document.getElementById('destination').value,
-            departureDate: document.getElementById('departureDate').value,
-            oneWay: document.getElementById('oneWay').checked,
-            returnDate: document.getElementById('oneWay').checked ? null : document.getElementById('returnDate').value,
-            passengers: document.getElementById('passengers').value
-        };
-
-        // Generate flights
-        allFlights = generateFlights(searchData.origin, searchData.destination);
-        filteredFlights = [...allFlights];
-        currentPage = 0;
-
-        const dateOptions = {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            timeZone: 'UTC'
-        };
-
-        // Update summary
-        const summaryHtml = `
-            <h2>${searchData.origin} → ${searchData.destination}</h2>
-            <p>${new Date(searchData.departureDate).toLocaleDateString('en-US', dateOptions)}
-            ${searchData.returnDate ? ' - ' + new Date(searchData.returnDate).toLocaleDateString('en-US', dateOptions) : ' (One-way)'}
-            • ${searchData.passengers} passenger${searchData.passengers > 1 ? 's' : ''}</p>
-        `;
-        document.getElementById('searchSummary').innerHTML = summaryHtml;
-        document.getElementById('resultsCount').textContent = `${allFlights.length} flights found`;
-
-        // Show results page
-        document.getElementById('searchPage').classList.add('hidden');
-        document.getElementById('resultsPage').classList.remove('hidden');
-
-        history.pushState({ page: 'results' }, '', '#results');
-
-        renderFlights();
-        updateModelContext(); // Ensure context updates when manually submitting form too
+        throw new Error('Manual form submission detected!');
     });
 }
 

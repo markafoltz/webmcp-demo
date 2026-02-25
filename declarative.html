@@ -12,31 +12,15 @@
 <body>
     <div class="container" id="searchPage">
         <h2 id="webmcp-support-message"></h2>
-        
-        <div class="simulation-settings">
-            <div class="settings-grid">
-                <div style="margin-bottom: 0;">
-                    <label for="latencyInput">Tool Execution Latency (ms)</label>
-                    <input type="number" id="latencyInput" placeholder="0" min="0" step="100" value="0">
-                </div>
-                <div class="settings-checkbox">
-                    <input type="checkbox" id="toolBugWorkaround" checked>
-                    <label for="toolBugWorkaround">Tool declaration bug workaround</label>
-                </div>
-                <div class="settings-checkbox">
-                    <input type="checkbox" id="spaMode">
-                    <label for="spaMode">Use SPA form submission</label>
-                </div>
-            </div>
-        </div>
-        
+
         <h1>✈️ Book Your Flight (Declarative Version)</h1>
         <p class="subtitle">Find the best flights for your journey</p>
 
         <form id="flightForm" toolname="search_flights"
                 tooldescription="Search for available flights between cities. Returns detailed
                 flight information including airline, price, times, stops, duration, aircraft type,
-                amenities, and seat details.">
+                amenities, and seat details."
+                toolautosubmit>
             <div class="form-group">
                 <label for="origin">Origin City</label>
                 <input type="text" id="origin" name="origin" placeholder="e.g., New York" required>
@@ -82,7 +66,7 @@
 
     <div class="container results-container hidden" id="resultsPage">
         <button class="back-button" id="backButton">← Back to Search</button>
-        
+
         <div class="search-summary" id="searchSummary"></div>
 
         <h1>Available Flights</h1>
@@ -99,32 +83,29 @@
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('flightForm');
-            const spaCheckbox = document.getElementById('spaMode');
 
-            if (form && spaCheckbox) {
+            if (form) {
                 form.addEventListener('submit', (e) => {
-                    if (spaCheckbox.checked) {
-                        e.preventDefault();
+                  e.preventDefault();
 
-                        const formData = new FormData(form);
-                        const searchParams = {
-                            origin: formData.get('origin'),
-                            destination: formData.get('destination'),
-                            departureDate: formData.get('departureDate'),
-                            returnDate: formData.get('returnDate'),
-                            passengers: parseInt(formData.get('passengers'))
-                        };
+                  const formData = new FormData(form);
+                  const searchParams = {
+                    origin: formData.get('origin'),
+                    destination: formData.get('destination'),
+                    departureDate: formData.get('departureDate'),
+                    returnDate: formData.get('returnDate'),
+                    passengers: parseInt(formData.get('passengers'))
+                  };
 
-                        if (!searchParams.returnDate) {
-                            searchParams.returnDate = undefined;
-                        }
+                  if (!searchParams.returnDate) {
+                    searchParams.returnDate = undefined;
+                  }
 
-                        const promise = window.searchFlights(searchParams);
+                  const promise = window.searchFlights(searchParams);
 
-                        if (typeof e.respondWith === 'function') {
-                            e.respondWith(promise);
-                        }
-                    }
+                  if (typeof e.respondWith === 'function') {
+                    e.respondWith(promise);
+                  }
                 });
             }
         });

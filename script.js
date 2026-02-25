@@ -15,32 +15,6 @@ let allFlights = [];
 let searchData = {};
 let filteredFlights = []; // Tracks currently filtered flights
 
-// --- LATENCY SIMULATION & WORKAROUND LOGIC ---
-let toolExecutionLatency = 0;
-let enableToolBugWorkaround = true; // Default checked
-
-document.getElementById('latencyInput').addEventListener('input', (e) => {
-    const val = parseInt(e.target.value);
-    toolExecutionLatency = isNaN(val) ? 0 : val;
-    console.log(`Tool latency set to ${toolExecutionLatency}ms`);
-});
-
-document.getElementById('toolBugWorkaround').addEventListener('change', (e) => {
-    enableToolBugWorkaround = e.target.checked;
-    console.log(`Tool bug workaround active: ${enableToolBugWorkaround}`);
-    updateModelContext(); // Immediate update when toggled
-});
-
-// Wrapper function to add delay
-const withLatency = (fn) => async (...args) => {
-    if (toolExecutionLatency > 0) {
-        console.log(`Simulating tool latency: ${toolExecutionLatency}ms...`);
-        await new Promise(resolve => setTimeout(resolve, toolExecutionLatency));
-    }
-    return fn(...args);
-};
-// --------------------------------
-
 // Search flights function
 async function searchFlights({ origin, destination, departureDate, returnDate, passengers }) {
     console.log('running searchFlights');
@@ -49,7 +23,7 @@ async function searchFlights({ origin, destination, departureDate, returnDate, p
     document.getElementById('destination').value = destination;
     document.getElementById('departureDate').value = departureDate;
     document.getElementById('passengers').value = passengers.toString();
-    
+
     if (returnDate) {
         document.getElementById('oneWay').checked = false;
         document.getElementById('returnDateGroup').classList.remove('hidden');
@@ -75,10 +49,10 @@ async function searchFlights({ origin, destination, departureDate, returnDate, p
     filteredFlights = [...allFlights]; // Initialize filtered flights
     currentPage = 0;
 
-    const dateOptions = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
+    const dateOptions = {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
         day: 'numeric',
         timeZone: 'UTC'
     };
@@ -133,7 +107,7 @@ async function searchFlights({ origin, destination, departureDate, returnDate, p
 async function getFlights({ scope = "visible" }) {
     console.log('running getFlights');
     let flightsToReturn;
-    
+
     if (scope === "visible") {
         // Return only currently visible flights on the page
         const start = currentPage * flightsPerPage;
@@ -179,13 +153,13 @@ async function getFlights({ scope = "visible" }) {
 // Show specific flights by ID
 async function showFlights({ flightIds }) {
     console.log('running showFlights');
-    
+
     // Filter flights by the provided IDs
     filteredFlights = allFlights.filter(flight => flightIds.includes(flight.flightId));
-    
+
     // Reset to first page
     currentPage = 0;
-    
+
     // Update UI
     document.getElementById('resultsCount').textContent = `${filteredFlights.length} flights found`;
     renderFlights();
@@ -199,10 +173,10 @@ async function showFlights({ flightIds }) {
 // Reset filters to show all flights
 async function resetFilters() {
     console.log('running resetFilters');
-    
+
     filteredFlights = [...allFlights];
     currentPage = 0;
-    
+
     // Update UI
     document.getElementById('resultsCount').textContent = `${allFlights.length} flights found`;
     renderFlights();
@@ -233,33 +207,32 @@ function updateModelContext() {
     const isResultsPage = !document.getElementById('resultsPage').classList.contains('hidden');
 
     // Define search tool to be used in both contexts
-    // NOTE: Wrapped withLatency() here
     const searchTool = {
-        execute: withLatency(searchFlights),
+        execute: searchFlights,
         name: "search_flights",
         description: "Search for available flights between cities. Returns detailed flight information including airline, price, times, stops, duration, aircraft type, amenities, and seat details.",
         inputSchema: {
             type: "object",
             properties: {
-                origin: { 
-                    type: "string", 
-                    description: "The origin city for the flight" 
+                origin: {
+                    type: "string",
+                    description: "The origin city for the flight"
                 },
-                destination: { 
-                    type: "string", 
-                    description: "The destination city for the flight" 
+                destination: {
+                    type: "string",
+                    description: "The destination city for the flight"
                 },
-                departureDate: { 
-                    type: "string", 
-                    description: "The departure date in YYYY-MM-DD format" 
+                departureDate: {
+                    type: "string",
+                    description: "The departure date in YYYY-MM-DD format"
                 },
-                returnDate: { 
-                    type: "string", 
-                    description: "The return date in YYYY-MM-DD format. Only required for round-trip flights. Omit for one-way trips." 
+                returnDate: {
+                    type: "string",
+                    description: "The return date in YYYY-MM-DD format. Only required for round-trip flights. Omit for one-way trips."
                 },
-                passengers: { 
-                    type: "number", 
-                    description: "The number of passengers (1-8)" 
+                passengers: {
+                    type: "number",
+                    description: "The number of passengers (1-8)"
                 }
             },
             required: ["origin", "destination", "departureDate", "passengers"]
@@ -268,11 +241,9 @@ function updateModelContext() {
 
     if (isResultsPage) {
         // Results page tools
-        // NOTE: Wrapped all execute functions withLatency() here
-        
         const toolsList = [
             {
-                execute: withLatency(getFlights),
+                execute: getFlights,
                 name: "get_flights",
                 description: "Get the list of flights. Can return either currently visible flights on the page or all search results.",
                 inputSchema: {
@@ -288,7 +259,7 @@ function updateModelContext() {
                 }
             },
             {
-                execute: withLatency(showFlights),
+                execute: showFlights,
                 name: "show_flights",
                 description: "Filter and display only specific flights by their IDs. Updates the UI to show only the selected flights.",
                 inputSchema: {
@@ -304,7 +275,7 @@ function updateModelContext() {
                 }
             },
             {
-                execute: withLatency(resetFilters),
+                execute: resetFilters,
                 name: "reset_filters",
                 description: "Remove all filters and show all flights from the original search results.",
                 inputSchema: {
@@ -313,12 +284,6 @@ function updateModelContext() {
                 }
             }
         ];
-
-        // CONDITIONAL WORKAROUND:
-        // Only add search_flights to the results page if the checkbox is checked
-        if (enableToolBugWorkaround && !is_declarative_tool) {
-            toolsList.push(searchTool);
-        }
 
         window.navigator.modelContext.provideContext({
             tools: toolsList
@@ -350,7 +315,7 @@ document.getElementById('departureDate').addEventListener('change', function() {
 document.getElementById('oneWay').addEventListener('change', function() {
     const returnDateGroup = document.getElementById('returnDateGroup');
     const returnDateInput = document.getElementById('returnDate');
-    
+
     if (this.checked) {
         returnDateGroup.classList.add('hidden');
         returnDateInput.value = '';
@@ -361,36 +326,31 @@ document.getElementById('oneWay').addEventListener('change', function() {
 
 function generateFlights(origin, destination) {
     const flights = [];
-    
+
+    // Use a constant random number in place of Math.random().
+    const randomNumber = 0.3069690124131733;
+
     for (let i = 0; i < 24; i++) {
-        const airline = airlines[Math.floor(Math.random() * airlines.length)];
-        const stops = Math.random() < 0.4 ? 0 : Math.random() < 0.7 ? 1 : 2;
-        
-        // Less stops = shorter duration
-        let baseDuration;
-        if (stops === 0) {
-            baseDuration = 120 + Math.floor(Math.random() * 120); // 2-4 hours for nonstop
-        } else if (stops === 1) {
-            baseDuration = 240 + Math.floor(Math.random() * 120); // 4-6 hours for 1 stop
-        } else {
-            baseDuration = 360 + Math.floor(Math.random() * 180); // 6-9 hours for 2 stops
-        }
-        
-        const departHour = 6 + Math.floor(Math.random() * 16);
-        const departMinute = Math.floor(Math.random() * 4) * 15;
-        
+        const airline = airlines[Math.floor(randomNumber * airlines.length)];
+        const stops = 0;
+
+
+        const baseDuration = 120 + Math.floor(randomNumber * 120); // 2-4 hours for nonstop
+        const departHour = 6 + Math.floor(randomNumber * 16);
+        const departMinute = Math.floor(randomNumber * 4) * 15;
+
         const arriveTime = new Date();
         arriveTime.setHours(departHour);
         arriveTime.setMinutes(departMinute + baseDuration);
-        
-        const price = 150 + Math.floor(Math.random() * 450);
-        
+
+        const price = 150 + Math.floor(randomNumber * 450);
+
         const hours = Math.floor(baseDuration / 60);
         const minutes = baseDuration % 60;
-        
+
         // Generate unique flight identifier
-        const flightId = `FL${Date.now()}-${i}-${Math.random().toString(36).substr(2, 9)}`;
-        
+        const flightId = `FL${Date.now()}-${i}-${randomNumber.toString(36).substr(2, 9)}`;
+
         flights.push({
             id: i,
             flightId: flightId,
@@ -402,15 +362,15 @@ function generateFlights(origin, destination) {
             duration: hours + 'h ' + minutes + 'm',
             stops: stops,
             price: price,
-            plane: planes[Math.floor(Math.random() * planes.length)],
-            legroom: (28 + Math.floor(Math.random() * 8)) + ' inches',
-            entertainment: Math.random() < 0.7,
-            wifi: Math.random() < 0.6,
-            charging: Math.random() < 0.8,
-            lieFlat: Math.random() < 0.4
+            plane: planes[Math.floor(randomNumber * planes.length)],
+            legroom: (28 + Math.floor(randomNumber * 8)) + ' inches',
+            entertainment: true,
+            wifi: true,
+            charging: true,
+            lieFlat: true
         });
     }
-    
+
     return flights.sort((a, b) => a.price - b.price);
 }
 
@@ -419,7 +379,7 @@ function renderFlights() {
     const start = currentPage * flightsPerPage;
     const end = start + flightsPerPage;
     const pageFlights = filteredFlights.slice(start, end);
-    
+
     container.innerHTML = pageFlights.map(flight => `
         <div class="flight-card">
             <div class="flight-header">
@@ -429,29 +389,29 @@ function renderFlights() {
                 </div>
                 <div class="price">$${flight.price}</div>
             </div>
-            
+
             <div class="flight-details">
                 <div class="flight-time">
                     <div class="time">${flight.departTime}</div>
                     <div class="airport">${flight.origin}</div>
                 </div>
-                
+
                 <div class="flight-path">
                     <div class="duration">${flight.duration}</div>
                     <div>————————</div>
                     <div class="stops">${flight.stops === 0 ? 'Nonstop' : flight.stops + ' stop' + (flight.stops > 1 ? 's' : '')}</div>
                 </div>
-                
+
                 <div class="flight-time">
                     <div class="time">${flight.arriveTime}</div>
                     <div class="airport">${flight.destination}</div>
                 </div>
             </div>
-            
+
             <button class="expand-button" onclick="toggleDetails(${flight.id})">
                 <span id="expand-text-${flight.id}">View Details</span>
             </button>
-            
+
             <div class="expanded-details hidden" id="details-${flight.id}">
                 <div class="detail-grid">
                     <div class="detail-item">
@@ -460,35 +420,35 @@ function renderFlights() {
                             <div class="detail-value">${flight.plane}</div>
                         </div>
                     </div>
-                    
+
                     <div class="detail-item">
                         <div>
                             <div class="detail-label">Legroom</div>
                             <div class="detail-value">${flight.legroom}</div>
                         </div>
                     </div>
-                    
+
                     <div class="detail-item">
                         <div>
                             <div class="detail-label">In-Flight Entertainment</div>
                             <div class="detail-value">${flight.entertainment ? '✓ Available' : '✗ Not available'}</div>
                         </div>
                     </div>
-                    
+
                     <div class="detail-item">
                         <div>
                             <div class="detail-label">WiFi</div>
                             <div class="detail-value">${flight.wifi ? '✓ Available' : '✗ Not available'}</div>
                         </div>
                     </div>
-                    
+
                     <div class="detail-item">
                         <div>
                             <div class="detail-label">Seat Charging</div>
                             <div class="detail-value">${flight.charging ? '✓ Available' : '✗ Not available'}</div>
                         </div>
                     </div>
-                    
+
                     <div class="detail-item">
                         <div>
                             <div class="detail-label">Lie-Flat Upgrade</div>
@@ -499,14 +459,14 @@ function renderFlights() {
             </div>
         </div>
     `).join('');
-    
+
     updatePagination();
 }
 
 function toggleDetails(flightId) {
     const details = document.getElementById(`details-${flightId}`);
     const text = document.getElementById(`expand-text-${flightId}`);
-    
+
     if (details.classList.contains('hidden')) {
         details.classList.remove('hidden');
         text.textContent = 'Hide Details';
@@ -563,12 +523,12 @@ if (!is_declarative_tool) {
         filteredFlights = [...allFlights];
         currentPage = 0;
 
-        const dateOptions = { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric', 
-            timeZone: 'UTC' 
+        const dateOptions = {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            timeZone: 'UTC'
         };
 
         // Update summary
@@ -584,7 +544,7 @@ if (!is_declarative_tool) {
         // Show results page
         document.getElementById('searchPage').classList.add('hidden');
         document.getElementById('resultsPage').classList.remove('hidden');
-        
+
         history.pushState({ page: 'results' }, '', '#results');
 
         renderFlights();

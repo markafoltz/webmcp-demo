@@ -14,7 +14,7 @@ const flightsPerPage = 6;
 let allFlights = [];
 let searchData = {};
 let filteredFlights = []; // Tracks currently filtered flights
-let activeToolNames = []; // TRACKS REGISTERED TOOLS FOR CLEANUP
+let abortController; // For tool unregistration
 
 // Search flights function
 async function searchFlights({ origin, destination, departureDate, returnDate, passengers }) {
@@ -173,8 +173,7 @@ function updateModelContext() {
     }
 
     // 1. UNREGISTER EXISTING TOOLS
-    activeToolNames.forEach(name => window.navigator.modelContext.unregisterTool(name));
-    activeToolNames = [];
+    if (controller) controller.abort()
 
     const isResultsPage = !document.getElementById('resultsPage').classList.contains('hidden');
 
@@ -247,9 +246,9 @@ function updateModelContext() {
     }
 
     // 2. REGISTER NEW TOOLS
+    controller = new AbortController();
     toolsToRegister.forEach(tool => {
-        window.navigator.modelContext.registerTool(tool);
-        activeToolNames.push(tool.name);
+        window.navigator.modelContext.registerTool(tool, { signal: controller.signal });
     });
 }
 

@@ -14,7 +14,7 @@ const flightsPerPage = 6;
 let allFlights = [];
 let searchData = {};
 let filteredFlights = []; // Tracks currently filtered flights
-let abortController; // For tool unregistration
+let controller; // For tool unregistration
 
 // Search flights function
 async function searchFlights({ origin, destination, departureDate, returnDate, passengers }) {
